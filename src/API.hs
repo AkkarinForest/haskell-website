@@ -47,4 +47,4 @@ symbolsServer connString =
 runServer :: IO ()
 runServer = do
   connString <- fetchPostgresConnection
-  run 8000 (serve symbolsAPI (symbolsServer connString))
+  run 8001 (serve symbolsAPI (symbolsServer connString))
