@@ -1,3 +1,4 @@
 .stack-work/
 my-website.cabal
-*~
+/elm/elm-stuff
+/elm/main.html
