@@ -14,13 +14,15 @@ import           Network.Wai.Handler.Warp (run)
 import           Servant.API
 import           Servant.Client
 import           Servant.Server
+import           Servant.Server.StaticFiles (serveDirectoryFileServer)
 
 import           Database (fetchPostgresConnection, fetchSymbolPG, createSymbolPG)
 import           Schema
 
 type SymbolsAPI =
-  "symbols" :> Capture "symbolid" Int64 :> Get '[JSON] Symbol
-  :<|> "symbols" :> ReqBody '[JSON] Symbol :> Post '[JSON] Int64
+  "symbols" :> Capture "symbolid" Int64 :> Get '[JSON] Symbol :<|> 
+  "symbols" :> ReqBody '[JSON] Symbol :> Post '[JSON] Int64 :<|> 
+  Raw
 
 symbolsAPI :: Proxy SymbolsAPI
 symbolsAPI = Proxy :: Proxy SymbolsAPI
@@ -39,9 +41,9 @@ symbols1 :: [Symbol]
 symbols1 = [Symbol "a", Symbol "b"]
 
 symbolsServer :: ConnectionString -> Server SymbolsAPI
-symbolsServer connString =
-   (fetchSymbolsHandler connString) :<|>
-   (createSymbolsHandler connString)
+symbolsServer connString = (fetchSymbolsHandler connString) 
+  :<|> (createSymbolsHandler connString) 
+  :<|> serveDirectoryFileServer "static/"
 
 
 runServer :: IO ()

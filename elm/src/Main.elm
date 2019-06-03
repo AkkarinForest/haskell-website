@@ -2,6 +2,7 @@ module Main exposing (Model, Msg(..), defaultModel, main, subscriptions, update,
 
 import Browser
 import Html exposing (..)
+import Html.Attributes as Attr
 import Html.Events as Events
 import Http
 import Json.Decode as Decode
@@ -35,11 +36,11 @@ type alias Flags =
 
 
 type alias Model =
-    { input : String, id : String }
+    { input : String, id : String, content : String }
 
 
 defaultModel =
-    { input = "init", id = "no id" }
+    { input = "init", id = "no id", content = "" }
 
 
 
@@ -49,13 +50,14 @@ defaultModel =
 type Msg
     = Post
     | GotId (Result Http.Error String)
+    | UpdateContent String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Post ->
-            ( model, postSymbol )
+            ( model, postSymbol model.content )
 
         GotId result ->
             case result of
@@ -65,19 +67,22 @@ update msg model =
                 Err error ->
                     ( { model | id = "error" }, Cmd.none )
 
+        UpdateContent content ->
+            ( { model | content = content }, Cmd.none )
 
-postSymbol : Cmd Msg
-postSymbol =
+
+postSymbol : String -> Cmd Msg
+postSymbol symbol =
     Http.post
         { url = "http://localhost:8001/symbols"
-        , body = Http.jsonBody symbol
+        , body = Http.jsonBody (encodeSymbol symbol)
         , expect = Http.expectString GotId
         }
 
 
-symbol : Encode.Value
-symbol =
-    Encode.object [ ( "symbols", Encode.string "b" ) ]
+encodeSymbol : String -> Encode.Value
+encodeSymbol symbol =
+    Encode.object [ ( "symbol", Encode.string symbol ) ]
 
 
 
@@ -87,7 +92,12 @@ symbol =
 view : Model -> Html Msg
 view model =
     div []
-        [ button [ Events.onClick Post ] [ text "Submit" ]
+        [ input
+            [ Attr.value model.content
+            , Events.onInput UpdateContent
+            ]
+            []
+        , button [ Events.onClick Post ] [ text "Submit" ]
         , text model.id
         ]
 
