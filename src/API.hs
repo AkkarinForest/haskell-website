@@ -20,8 +20,8 @@ import           Database (fetchPostgresConnection, fetchSymbolPG, createSymbolP
 import           Schema
 
 type SymbolsAPI =
-  "symbols" :> Capture "symbolid" Int64 :> Get '[JSON] Symbol :<|> 
-  "symbols" :> ReqBody '[JSON] Symbol :> Post '[JSON] Int64 :<|> 
+  "symbols" :> Capture "symbolid" Int64 :> Get '[JSON] Symbol :<|>
+  "symbols" :> ReqBody '[JSON] Symbol :> Post '[JSON] Int64 :<|>
   Raw
 
 symbolsAPI :: Proxy SymbolsAPI
@@ -37,12 +37,9 @@ fetchSymbolsHandler connString uid = do
 createSymbolsHandler :: ConnectionString -> Symbol -> Handler Int64
 createSymbolsHandler connString symbol = liftIO $ createSymbolPG connString symbol
 
-symbols1 :: [Symbol]
-symbols1 = [Symbol "a", Symbol "b"]
-
 symbolsServer :: ConnectionString -> Server SymbolsAPI
-symbolsServer connString = (fetchSymbolsHandler connString) 
-  :<|> (createSymbolsHandler connString) 
+symbolsServer connString = (fetchSymbolsHandler connString)
+  :<|> (createSymbolsHandler connString)
   :<|> serveDirectoryFileServer "static/"
 
 

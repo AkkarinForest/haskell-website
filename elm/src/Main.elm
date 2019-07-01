@@ -7,6 +7,8 @@ import Html.Events as Events
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
+import Task
+import Time
 
 
 
@@ -36,11 +38,15 @@ type alias Flags =
 
 
 type alias Model =
-    { input : String, id : String, content : String }
+    { id : String, content : String, symbols : List InputAction, previousTime : Int }
 
 
 defaultModel =
-    { input = "init", id = "no id", content = "" }
+    { id = "no id", content = "", symbols = [], previousTime = 0 }
+
+
+type alias InputAction =
+    { symbol : String, time : Int }
 
 
 
@@ -51,13 +57,18 @@ type Msg
     = Post
     | GotId (Result Http.Error String)
     | UpdateContent String
+    | RecordInput Time.Posix
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Post ->
-            ( model, postSymbol model.content )
+            let
+                postAllSymbols =
+                    Cmd.batch (List.map postSymbol model.symbols)
+            in
+            ( model, postAllSymbols )
 
         GotId result ->
             case result of
@@ -68,14 +79,27 @@ update msg model =
                     ( { model | id = "error" }, Cmd.none )
 
         UpdateContent content ->
-            ( { model | content = content }, Cmd.none )
+            ( { model | content = content }, Task.perform RecordInput Time.now )
+
+        RecordInput newTime ->
+            let
+                timeDiff =
+                    Time.posixToMillis newTime - model.previousTime
+
+                symbols =
+                    { symbol = String.right 1 model.content, time = timeDiff } :: model.symbols
+
+                x =
+                    Debug.log "elm" symbols
+            in
+            ( { model | symbols = symbols, previousTime = Time.posixToMillis newTime }, Cmd.none )
 
 
-postSymbol : String -> Cmd Msg
-postSymbol symbol =
+postSymbol : InputAction -> Cmd Msg
+postSymbol inputAction =
     Http.post
         { url = "http://localhost:8001/symbols"
-        , body = Http.jsonBody (encodeSymbol symbol)
+        , body = Http.jsonBody (encodeSymbol inputAction.symbol)
         , expect = Http.expectString GotId
         }
 
