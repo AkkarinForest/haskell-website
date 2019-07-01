@@ -20,15 +20,16 @@ import           Data.Text (Text)
 PTH.share [PTH.mkPersist PTH.sqlSettings, PTH.mkMigrate "migrateAll"] [PTH.persistLowerCase|
   Symbol sql=symbols
     symbol Text
+    delayTime Int
 
   Stroke sql=strokes
     symbolId SymbolId
     delayTime Int
 |]
 
-instance ToJSON Symbol where 
-  toJSON symbol = object 
-    [ "symbol" .= symbolSymbol symbol ]
+instance ToJSON Symbol where
+  toJSON symbol = object
+    [ "symbol" .= symbolSymbol symbol]
 
 instance FromJSON Symbol where
   parseJSON = withObject "Symbol" parserSymbol
@@ -36,5 +37,6 @@ instance FromJSON Symbol where
 parserSymbol :: Object -> Parser Symbol
 parserSymbol o = do
   sSymbol <- o .: "symbol"
+  sDelayTime <- o .: "time"
   return Symbol
-    { symbolSymbol = sSymbol }
+    { symbolSymbol = sSymbol, symbolDelayTime = sDelayTime }

@@ -99,14 +99,14 @@ postSymbol : InputAction -> Cmd Msg
 postSymbol inputAction =
     Http.post
         { url = "http://localhost:8001/symbols"
-        , body = Http.jsonBody (encodeSymbol inputAction.symbol)
+        , body = Http.jsonBody (encodeSymbol inputAction)
         , expect = Http.expectString GotId
         }
 
 
-encodeSymbol : String -> Encode.Value
-encodeSymbol symbol =
-    Encode.object [ ( "symbol", Encode.string symbol ) ]
+encodeSymbol : InputAction -> Encode.Value
+encodeSymbol inputAction =
+    Encode.object [ ( "symbol", Encode.string inputAction.symbol ), ( "time", Encode.int inputAction.time ) ]
 
 
 
