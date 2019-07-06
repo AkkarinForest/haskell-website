@@ -1,6 +1,12 @@
 module Main exposing (Model, Msg(..), defaultModel, main, subscriptions, update, view)
 
 import Browser
+import Element as Elem exposing (Element)
+import Element.Background as Background
+import Element.Border as Border
+import Element.Events
+import Element.Font as Font
+import Element.Input as Input
 import Html exposing (..)
 import Html.Attributes as Attr
 import Html.Events as Events
@@ -58,7 +64,7 @@ defaultModel =
     , content = ""
     , symbols = []
     , previousTime = 0
-    , stats = NotAsked
+    , stats = Success [ { symbol = "a", time = 1 }, { symbol = "b", time = 2 }, { symbol = "c", time = 3 } ]
     }
 
 
@@ -140,27 +146,60 @@ encodeSymbol inputAction =
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ viewInput model
-        , viewStats model
+    Elem.layout [] <|
+        Elem.column [ Elem.width Elem.fill ]
+            [ viewInput model.content
+            , viewStats model.stats
+            ]
+
+
+viewInput : String -> Element Msg
+viewInput content =
+    Elem.column [ Elem.width Elem.fill, Elem.padding 50, Elem.spacing 20 ]
+        [ Input.text [ Elem.spacing 20 ]
+            { text = content
+            , label =
+                Input.labelAbove
+                    [ Elem.centerX
+                    ]
+                    (Elem.text "Type the sentence")
+            , onChange = UpdateContent
+            , placeholder = Nothing
+            }
+        , Input.button
+            [ Elem.centerX
+            , Elem.padding 10
+            ]
+            { onPress = Just Post, label = Elem.text "Submit" }
         ]
 
 
-viewStats model =
-    div []
-        [ button [ Events.onClick (ExecCmd getStats) ] [ text "Stats" ]
-        , case model.stats of
+viewStats : WebData (List Stat) -> Element Msg
+viewStats statsData =
+    Elem.column [ Elem.spacing 10, Elem.padding 10 ]
+        [ Input.button [] { onPress = Just (ExecCmd getStats), label = Elem.text "Stats" }
+        , case statsData of
             Success stats ->
-                div [] (List.map viewStat stats)
+                Elem.wrappedRow [] (List.map viewStat stats)
 
             Loading ->
-                div [] [ text "loading" ]
+                Elem.el [] (Elem.text "loading")
 
             NotAsked ->
-                div [] [ text "not asked" ]
+                Elem.el [] (Elem.text "not asked")
 
             Failure err ->
-                div [] [ text ("Error: " ++ Debug.toString err) ]
+                Elem.el [] (Elem.text ("Error: " ++ Debug.toString err))
+        ]
+
+
+viewStat : Stat -> Element Msg
+viewStat stat =
+    Elem.row []
+        [ Elem.text stat.symbol
+        , Elem.text " : "
+        , Elem.text (String.fromInt stat.time)
+        , Elem.text ", "
         ]
 
 
@@ -181,27 +220,6 @@ symbolsDecoder =
                 (Decode.field "time" Decode.int)
     in
     Decode.list symbolDecoder
-
-
-viewStat stat =
-    div []
-        [ text stat.symbol
-        , text " : "
-        , text (String.fromInt stat.time)
-        ]
-
-
-viewInput model =
-    div
-        []
-        [ input
-            [ Attr.value model.content
-            , Events.onInput UpdateContent
-            ]
-            []
-        , button [ Events.onClick Post ] [ text "Submit" ]
-        , text model.id
-        ]
 
 
 
