@@ -28,8 +28,14 @@ PTH.share [PTH.mkPersist PTH.sqlSettings, PTH.mkMigrate "migrateAll"] [PTH.persi
 |]
 
 instance ToJSON Symbol where
-  toJSON symbol = object
-    [ "symbol" .= symbolSymbol symbol]
+  toJSON (Symbol symbol delayTime) = object
+    [ "symbol" .= symbol
+    , "time" .= delayTime]
+
+instance ToJSON (Entity Symbol) where
+  toJSON (Entity key (Symbol time symbol)) = object
+    [ "symbol" .= symbol
+    , "time" .= time]
 
 instance FromJSON Symbol where
   parseJSON = withObject "Symbol" parserSymbol

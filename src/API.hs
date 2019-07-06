@@ -16,12 +16,13 @@ import           Servant.Client
 import           Servant.Server
 import           Servant.Server.StaticFiles (serveDirectoryFileServer)
 
-import           Database (fetchPostgresConnection, fetchSymbolPG, createSymbolPG)
+import           Database (fetchPostgresConnection, fetchSymbolPG, fetchSymbolsStatsPG, createSymbolPG)
 import           Schema
 
 type SymbolsAPI =
   "symbols" :> Capture "symbolid" Int64 :> Get '[JSON] Symbol :<|>
   "symbols" :> ReqBody '[JSON] Symbol :> Post '[JSON] Int64 :<|>
+  "symbols_stats" :> Get '[JSON] [Entity Symbol] :<|>
   Raw
 
 symbolsAPI :: Proxy SymbolsAPI
@@ -37,9 +38,15 @@ fetchSymbolsHandler connString uid = do
 createSymbolsHandler :: ConnectionString -> Symbol -> Handler Int64
 createSymbolsHandler connString symbol = liftIO $ createSymbolPG connString symbol
 
+fetchAllSymbolsHandler :: ConnectionString -> Handler [Entity Symbol]
+fetchAllSymbolsHandler connString = do
+  symbolsStats <- liftIO $ fetchSymbolsStatsPG connString
+  return symbolsStats
+
 symbolsServer :: ConnectionString -> Server SymbolsAPI
 symbolsServer connString = (fetchSymbolsHandler connString)
   :<|> (createSymbolsHandler connString)
+  :<|> (fetchAllSymbolsHandler connString)
   :<|> serveDirectoryFileServer "static/"
 
 
