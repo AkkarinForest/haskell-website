@@ -33,7 +33,7 @@ instance ToJSON Symbol where
     , "time" .= delayTime]
 
 instance ToJSON (Entity Symbol) where
-  toJSON (Entity key (Symbol time symbol)) = object
+  toJSON (Entity key (Symbol symbol time)) = object
     [ "symbol" .= symbol
     , "time" .= time]
 

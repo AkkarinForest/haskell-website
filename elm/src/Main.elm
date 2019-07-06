@@ -7,6 +7,7 @@ import Html.Events as Events
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
+import RemoteData exposing (RemoteData(..), WebData)
 import Task
 import Time
 
@@ -38,11 +39,27 @@ type alias Flags =
 
 
 type alias Model =
-    { id : String, content : String, symbols : List InputAction, previousTime : Int }
+    { id : String
+    , content : String
+    , symbols : List InputAction
+    , previousTime : Int
+    , stats : WebData (List Stat)
+    }
+
+
+type alias Stat =
+    { symbol : String
+    , time : Int
+    }
 
 
 defaultModel =
-    { id = "no id", content = "", symbols = [], previousTime = 0 }
+    { id = "no id"
+    , content = ""
+    , symbols = []
+    , previousTime = 0
+    , stats = NotAsked
+    }
 
 
 type alias InputAction =
@@ -58,6 +75,8 @@ type Msg
     | GotId (Result Http.Error String)
     | UpdateContent String
     | RecordInput Time.Posix
+    | NewStats (WebData (List Stat))
+    | ExecCmd (Cmd Msg)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -94,6 +113,12 @@ update msg model =
             in
             ( { model | symbols = symbols, previousTime = Time.posixToMillis newTime }, Cmd.none )
 
+        NewStats stats ->
+            ( { model | stats = stats }, Cmd.none )
+
+        ExecCmd cmd ->
+            ( model, cmd )
+
 
 postSymbol : InputAction -> Cmd Msg
 postSymbol inputAction =
@@ -116,6 +141,59 @@ encodeSymbol inputAction =
 view : Model -> Html Msg
 view model =
     div []
+        [ viewInput model
+        , viewStats model
+        ]
+
+
+viewStats model =
+    div []
+        [ button [ Events.onClick (ExecCmd getStats) ] [ text "Stats" ]
+        , case model.stats of
+            Success stats ->
+                div [] (List.map viewStat stats)
+
+            Loading ->
+                div [] [ text "loading" ]
+
+            NotAsked ->
+                div [] [ text "not asked" ]
+
+            Failure err ->
+                div [] [ text ("Error: " ++ Debug.toString err) ]
+        ]
+
+
+getStats : Cmd Msg
+getStats =
+    Http.get
+        { url = "http://localhost:8001/symbols_stats"
+        , expect = Http.expectJson (RemoteData.fromResult >> NewStats) symbolsDecoder
+        }
+
+
+symbolsDecoder : Decode.Decoder (List Stat)
+symbolsDecoder =
+    let
+        symbolDecoder =
+            Decode.map2 Stat
+                (Decode.field "symbol" Decode.string)
+                (Decode.field "time" Decode.int)
+    in
+    Decode.list symbolDecoder
+
+
+viewStat stat =
+    div []
+        [ text stat.symbol
+        , text " : "
+        , text (String.fromInt stat.time)
+        ]
+
+
+viewInput model =
+    div
+        []
         [ input
             [ Attr.value model.content
             , Events.onInput UpdateContent
